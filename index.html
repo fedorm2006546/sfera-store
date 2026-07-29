@@ -2038,7 +2038,15 @@ function processImportRows(rows){
     const prod = String(r[colProduct]||"").trim();
     const model = String(r[colModel]||"").trim();
     const priceRaw = colPrice >= 0 ? r[colPrice] : "";
-    const price = parseInt(String(priceRaw).replace(/[^\d]/g,'')) || 0;
+    let price = 0;
+    if(typeof priceRaw === 'number' && isFinite(priceRaw)){
+      price = Math.round(priceRaw);
+    } else if(priceRaw != null && priceRaw !== ''){
+      // Строка: нормализуем разделители, отбрасываем дробную часть
+      let s = String(priceRaw).replace(/[\s\u00A0₽руб.]/gi, '').replace(',', '.');
+      const n = parseFloat(s);
+      if(isFinite(n)) price = Math.round(n);
+    }
     if(sec) currentSection = sec;
     if(prod) currentProduct = prod;
     if(!model) continue; // skip empty lines
@@ -2127,9 +2135,11 @@ function buildOptionsAndMatrix(items, dimensions){
       return { label };
     });
     return { name: d.name, type: d.type, values };
-  }).filter(o => o.values.length > 0);
-  // Build matrix
-  const matrix = {};
+ if(!matrix[key]){
+      matrix[key] = { price: it.price || 0, available: true };
+    } else if(it.price > 0 && (matrix[key].price === 0 || it.price < matrix[key].price)){
+      matrix[key].price = it.price;
+    }
   items.forEach(it => {
     const key = options.map(o => {
       const dim = dimensions.find(d => d.name === o.name);
@@ -3118,13 +3128,15 @@ function guessHexForColor(name){
   const map = {
     "Black": "#1a1a1a", "Чёрный": "#1a1a1a",
     "White": "#f5f5f5", "Белый": "#f5f5f5", "Silver": "#c8c8c8",
-    "Pink": "#f9b8c3", "Розовый": "#f9b8c3",
-    "Blue": "#5778a8", "Синий": "#5778a8", "Teal": "#5fa3a5", "Ultramarine": "#3754a8", "Deep Blue": "#1f3a68",
-    "Gold": "#d4af37", "Золотой": "#d4af37",
-    "Red": "#c8442b", "Красный": "#c8442b",
-    "Green": "#5a8a5a", "Зелёный": "#5a8a5a",
-    "Purple": "#9b8aa8", "Фиолетовый": "#9b8aa8",
-    "Orange": "#e08540", "Cosmic Orange": "#cf6a35",
+    let extras = "";
+  // Сначала пробуем в скобках, потом — как отдельные токены
+  const simReParen = /\(([^)]*?(?:eSim|Sim)[^)]*?)\)/i;
+  const simReBare = /\b(eSim\/Sim|Sim\/eSim|eSim|Sim)\b/i;
+  const simMatch = str.match(simReParen) || str.match(simReBare);
+  if(simMatch){
+    extras = (simMatch[1] || simMatch[0]).trim();
+    str = str.replace(simMatch[0], "").trim();
+  }
     "Midnight": "#2a2c33", "Starlight": "#e8dfc8"
   };
   // Try exact, then last word match
