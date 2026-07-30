@@ -4,9 +4,9 @@
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL; // РЅР°РїСЂ. https://fd-gold.vercel.app
 
-const WELCOME_TEXT = "\Добро пожаловать в технологическое пространство Сфера!";
+const WELCOME_TEXT = "\Добро пожаловать в технологическое пространство Сфера!\n талокарлао";
 
-const BUTTON_TEXT = "\Магазин";
+const BUTTON_TEXT = "\Открыть магазин";
 async function tg(method, body){
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
     method: 'POST',
